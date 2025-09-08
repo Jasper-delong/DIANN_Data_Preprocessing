@@ -205,3 +205,17 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ================================== #
+# Project Specific / Bio-Informatics
+# ================================== #
+
+# Ignore all data folders. This is the most robust way.
+# Git will not even look inside these folders.
+data/
+results/
+reports/
+
+# As a safeguard, also ignore any file ending with .tsv anywhere in the project.
+# The asterisk (*) is a wildcard that means "any filename".
+*.tsv
