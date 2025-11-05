@@ -212,9 +212,31 @@ __marimo__/
 
 # Ignore all data folders. This is the most robust way.
 # Git will not even look inside these folders.
-data/
-results/
-reports/
+# ================================== #
+# Project Specific / Bio-Informatics
+# ================================== #
+
+# Ignore the contents of data, results, and reports directories,
+# but keep the directory structure by tracking .gitkeep files.
+
+# For the 'data' subdirectories
+data/raw_data/*
+!data/raw_data/.gitkeep
+
+data/processed_data/*
+!data/processed_data/.gitkeep
+
+data/external_data/*
+!data/external_data/.gitkeep
+
+# For the 'results' directory
+results/*
+!results/.gitkeep
+
+# For the 'reports' directory (and also ignore .tsv files inside as a safeguard)
+reports/*
+!reports/.gitkeep
+*.tsv
 
 # As a safeguard, also ignore any file ending with .tsv anywhere in the project.
 # The asterisk (*) is a wildcard that means "any filename".
