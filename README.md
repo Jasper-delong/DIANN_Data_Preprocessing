@@ -1,137 +1,115 @@
 
-# DIANN_Data_Preprocessing
-A standardized workflow for processing Data-Independent Acquisition (DIA) proteomics data analyzed by DIANN.
 
-# DIANN 蛋白质组学数据分析流程
 
-这是一个标准化的分析流程，用于处理由 DIANN 软件分析得到的 DIA 标签自由定量 (Label-Free Quantification, LFQ) 蛋白质组学数据。项目从 DIANN 输出的报告文件开始，完成数据质控、预处理、统计分析和核心结果的可视化。
+# DIANN 蛋白质组学数据模块化分析流程
 
-## 项目结构
+这是一个为 DIANN 设计的、高度模块化和智能化的分析流程，专门用于处理数据非依赖性采集 (DIA) 模式下的标签自由定量 (Label-Free Quantification, LFQ) 蛋白质组学数据。本流程从 DIANN 的原始输出报告出发，通过一系列自动化的【模块】，完成数据预处理、质量控制、统计分析、功能富集，并能一键生成最终的分析报告。
+
+该流程的核心特性是**配置与逻辑分离**以及**智能化执行**，用户只需在唯一的**【总控制面板】**中定义实验设计，后续所有分析模块将自动适应不同的数据情况（如单组 vs. 多组，重复数变化），选择最合适的分析策略。
+
+## ✨ 项目特性 (Features)
+
+*   **🕹️ 集中式配置**: 所有参数（文件路径、样本分组、统计阈值等）均在一个总控制面板中设置，无需修改核心代码。
+*   **🧠 智能化分析**: 流程能自动识别实验设计（单组/多组），并执行最恰当的分析组合。
+*   **🧩 完全模块化**: 每个分析步骤（QC、差异分析、富集分析等）都是一个独立的、可插拔的模块。
+*   **🛡️ 健壮的错误处理**: 能够智能处理文件缺失、不满足分析条件等情况，通过警告而非报错来保证流程的顺利运行。
+*   **🔬 专业级QC**: 集成了变异系数(CV)分析等定量QC指标，并能根据重复数自动选择韦恩图或Upset图。
+*   **📊 数据归一化**: 内置可选的中位数归一化模块，用于校正系统性技术偏差，提升数据可比性。
+*   **📜 一键生成报告**: （可选）能够将整个分析过程和结果一键导出为干净、专业的HTML报告。
+
+## 📁 项目结构
+
 ```
 .
-├── data/               # 存放原始数据文件 (如 DIANN 的 .tsv 报告)。
-│   └── raw_data/       # DIANN 输出的原始报告文件。
-├── figures/            # 存放生成的所有图表 (如PCA图、Upset图、热图)。
-├── processed_data/     # 存放处理后的中间数据 (如干净的定量矩阵)。
-├── scripts/            # 存放所有的分析代码 (Jupyter Notebook)。
-│   └── preprocessing/  # 预处理相关的Notebook。
+├── data/               # 存放原始数据文件。
+│   └── raw_data/       # DIANN 输出的原始报告文件（.tsv, .parquet）。
+├── results/            # 存放所有分析结果，包括生成的图表和最终报告。
+├── scripts/            # 存放所有的分析代码。
+│   └── preprocessing/  # 主要的 Jupyter Notebook 分析文件。
 ├── LICENSE             # 项目许可证文件。
-└── README.md           # 项目说明文件 (就是你正在看的这个)。
+└── README.md           # 项目说明文件。
 ```
 
-## 环境设置与安装
-1.  克隆本仓库
-    ```bash
-    git clone https://github.com/Jasper-delong/DIANN_Data_Preprocessing.git
-    cd DIANN_Data_Preprocessing
-    ```
+## 🚀 快速开始 (Quick Start)
 
-2.  安装所需依赖
-    本项目依赖于多个 Python 库。建议在虚拟环境 (如 Conda) 中安装。
-    ```bash
-    pip install pandas matplotlib seaborn matplotlib-venn upsetplot scikit-learn pyarrow
-    ```
+### 1. 环境设置
 
-## 分析流程大纲
-本流程主要分为两个核心阶段：数据导入与预处理，以及数据质量控制与重复性评估。
+建议在虚拟环境 (如 Conda) 中进行安装，以避免包版本冲突。
 
-### 目录 (Table of Contents)
-*   [1. 阶段一：数据导入与预处理 (Data Import & Preprocessing)](#1-阶段一数据导入与预处理-data-import--preprocessing)
-    *   [1.1. 数据导入 (Data Import)](#11-数据导入-data-import)
-    *   [1.2. 数据清洗 (Data Cleaning)](#12-数据清洗-data-cleaning)
-*   [2. 阶段二：质量控制与重复性评估 (Quality Control & Reproducibility Assessment)](#2-阶段二质量控制与重复性评估-quality-control--reproducibility-assessment)
-    *   [2.1. 鉴定数量重复性评估 (Identification Reproducibility)](#21-鉴定数量重复性评估-identification-reproducibility)
-    *   [2.2. 蛋白质组定量重复性检验 (Quantitative Reproducibility)](#22-蛋白质组定量重复性检验-quantitative-reproducibility)
-    *   [2.3. 绝对质量评估 (Absolute Quality Assessment)](#23-绝对质量评估-absolute-quality-assessment)
+```bash
+# 克隆仓库
+git clone https://github.com/Jasper-delong/DIANN_Data_Preprocessing.git  # 【请修改】为您的仓库链接
+cd DIANN_Data_Preprocessing
 
----
+# 安装所有必需的 Python 库
+pip install pandas matplotlib seaborn scikit-learn pyarrow jupyterlab
+pip install matplotlib-venn upsetplot gseapy nbconvert
+```
 
-## 1. 阶段一：数据导入与预处理 (Data Import & Preprocessing)
-本阶段的核心目标是读取 DIANN 的输出结果，并进行初步的清理工作，为后续分析准备好干净的数据矩阵。
+### 2. 准备数据
 
-### 1.1. 数据导入 (Data Import)
-**状态**: ✅ 已完成
+将您的 DIANN 输出文件（特别是 `report.pg_matrix.tsv`, `report.pr_matrix.tsv` 和 `report.parquet`）放入 `/data/raw_data` 文件夹。
 
-**操作描述**:
-使用 Python 的 `pandas` 库读取 DIANN 生成的报告文件。DIANN 会为蛋白质组和肽段分别生成独立的定量矩阵文件。
-*   **蛋白质组数据**: 读取 `report.pg_matrix.tsv` 文件。该文件包含了每个蛋白质组在所有样本中的定量信息（通常是 MaxLFQ 强度）。
-*   **肽段数据**: 读取 `report.pr_matrix.tsv` 文件。该文件包含了每个肽段母离子在所有样本中的定量信息。
-*   **列名重命名**: 原始的列名可能包含完整的文件路径或冗长的文件名，不易阅读。本步骤中包含一个关键的重命名操作，将这些名称映射为简洁的样本名（例如：`JDL_1`, `JDL_2`...），方便后续分析和图表展示。
+### 3. 配置与运行
 
-### 1.2. 数据清洗 (Data Cleaning)
-**状态**: ✅ 已完成 (作为可选项)
+1.  打开 `/scripts/preprocessing/` 文件夹中的主分析 Notebook (例如 `preprocessing.ipynb`)。
+2.  **仔细编辑【总控制面板】单元格**:
+    *   **文件路径**: 确认 `PROJECT_ROOT_DIR` 设置正确。
+    *   **样本与分组**:
+        *   在 `COLUMN_MAPPING` 中，将您原始的长文件名**精确地**映射为您想要的短名称。
+        *   在 `GROUP_DEFINITIONS` 中，使用这些短名称定义您的实验组。
+    *   **分析参数**:
+        *   设置 `PERFORM_NORMALIZATION = True` 以激活数据归一化（推荐）。
+        *   在 `COMPARISON_PAIRS` 中定义您想要进行差异比较的组对，例如 `[('Model', 'Control')]`。如果只有一组，请保持为 `[]`。
+        *   根据需要调整 `P_VALUE_THRESHOLD` 和 `LOG2_FC_THRESHOLD`。
+3.  **按顺序执行所有单元格**: 从顶部菜单栏选择 `Kernel -> Restart & Run All`，或按顺序手动运行每个模块的单元格。
 
-**操作描述**:
-此步骤的目的是剔除在样品制备过程中引入的常见污染物。
-*   **移除已知的污染物 (Contaminants)**:
-    *   **原因**: 样品制备过程中几乎不可避免地会引入角蛋白 (Keratin, KRT)、胰蛋白酶 (Trypsin) 等常见污染物。它们并非源自目标生物样本，会干扰后续的定量归一化和差异分析。
-    *   **操作**: 通过关键词匹配（如 `KRT`, `Trypsin`）筛选蛋白质的 `Genes` 或 `Protein.Ids` 列，移除这些污染物对应的行。在工作流中，此步骤被设计为可选项。
+## 🔬 分析模块详解 (Analysis Modules)
 
-*   **关于 Decoy 和 Q-value 过滤的说明**:
-    *   与某些其他软件不同，DIANN 在生成最终的 `report.pg_matrix.tsv` 报告时，**已经在内部完成了基于 Q-value (FDR) 的过滤**（通常为1% FDR）。因此，输出文件中的数据已经是经过筛选的高可信度结果，无需手动进行 Q-value 过滤或移除 Decoy 匹配。
+本流程由一系列独立的、顺序执行的模块构成：
 
----
+### 【模块一】数据加载、预处理与归一化
+*   **状态**: ✅ 已完成
+*   **功能**:
+    *   **智能加载**: 自动检测并加载【总控制面板】中定义的所有存在的文件。
+    *   **预处理**: 执行索引设置、样本重命名和污染物移除。
+    *   **数据归一化**: （可选）执行中位数归一化，并通过“归一化前后”的箱线图直观展示校正效果。
+    *   **透明化**: 详细打印每一步的处理过程和数据预览，让流程不再是“黑箱”。
 
-## 2. 阶段二：质量控制与重复性评估 (Quality Control & Reproducibility Assessment)
-本阶段旨在评估实验的技术稳定性与数据可靠性，是整个分析流程的基石。
+### 【模块二】智能QC分析 (带CV分析)
+*   **状态**: ✅ 已完成
+*   **功能**:
+    *   **智能决策**: 自动判断是**单组分析**（评估重复性）还是**多组分析**（评估组内聚集与组间分离）。
+    *   **定量QC**: 生成相关性热图、PCA图、箱线图。
+    *   **定性QC**: 根据重复数自动选择**韦恩图 (≤3)** 或 **Upset图 (>3)**。
+    *   **CV分析**: 新增变异系数(CV)分布图，提供衡量重复性的**定量指标**。
 
-### 2.1. 鉴定数量重复性评估 (Identification Reproducibility)
-**状态**: ✅ 已完成
+### 【模块三】差异表达分析
+*   **状态**: ✅ 已完成
+*   **功能**:
+    *   **条件化执行**: 仅在【总控制面板】中定义了 `COMPARISON_PAIRS` 时激活。
+    *   **核心统计**: 为每一对比较，通过T检验计算 **p-value** 和 **Log2 Fold Change**。
+    *   **结果输出**: 生成一个包含所有统计结果的字典，供下游模块使用。
 
-**操作描述**:
-本步骤旨在评估技术重复样本之间**鉴定结果**的一致性。
-*   **蛋白质/肽段鉴定数量统计**:
-    *   **目的**: 检查在各个样本中鉴定到的蛋白质和肽段数量是否大致相当。
-    *   **操作**: 统计每个样本的有效定量数目（非空值），并生成**条形图 (Bar Plot)**进行可视化比较。
-*   **组内重复性重叠分析 (Intra-Group Overlap)**:
-    *   **目的**: 评估同一组内的技术重复样本鉴定结果的一致性。
-    *   **操作 (智能选择)**:
-        *   当组内重复数 **≤ 3** 时，自动绘制**韦恩图 (Venn Diagram)**，直观展示少量样本间的重叠情况。
-        *   当组内重复数 **> 3** 时，自动绘制**Upset Plot**，清晰展示多样本间的复杂交集情况。
-*   **组间重叠分析 (Inter-Group Overlap)**:
-    *   **目的**: 比较不同实验组别之间鉴定的蛋白质有何异同。
-    *   **操作**: 绘制**韦恩图**。为确保比较的严谨性，引入了**阈值逻辑**：只有当一个蛋白质在某一组内的至少 N 个重复中被鉴定到时（N可调），才认为该蛋白质代表该组参与比较。
+### 【模块四】差异结果可视化
+*   **状态**: ✅ 已完成
+*   **功能**:
+    *   **条件化执行**: 仅在【模块三】成功产生差异分析结果时激活。
+    *   **核心图表**: 为每一对比较，自动生成**火山图 (Volcano Plot)**和**聚类热图 (Clustered Heatmap)**。
 
-### 2.2. 蛋白质组定量重复性检验 (Quantitative Reproducibility)
-**状态**: ✅ 已完成
+### 【模块五】智能功能分析
+*   **状态**: ✅ 已完成
+*   **功能**:
+    *   **智能决策**:
+        *   **多组**: 对差异蛋白（上调/下调）进行 **GO & KEGG 差异富集分析**。
+        *   **单组**: 对该组鉴定到的**所有**蛋白质进行 **GO & KEGG 整体功能轮廓分析**。
+    *   **可视化**: 使用信息量丰富的**点图 (Dot Plot)**展示富集结果。
 
-**操作描述**:
-本步骤旨在评估重复样本间**蛋白质丰度测量**的相关性和一致性。分析在对数据进行 Log2 转换后进行，以确保统计的可靠性。
-*   **相关性热图 (Correlation Heatmap)**:
-    *   **目的**: 计算并展示样本间皮尔逊相关系数，直观地量化样本间的相似度。
-    *   **操作**: 生成一个颜色编码的矩阵，数值越接近1（颜色越暖），代表样本间的定量重复性越好。
-*   **主成分分析图 (PCA Plot)**:
-    *   **目的**: 通过降维将高维的蛋白质组数据在二维空间中展示，检查样本是否按照预设的生物学分组自然聚类。
-    *   **操作**: 生成散点图，其中每个点代表一个样本。重复性好的样本会聚集在一起，不同组别的样本应能清晰分开。
-*   **定量分布箱线图 (Box Plot)**:
-    *   **目的**: 比较各样本定量值的整体分布情况，检查是否存在需要校正的系统性偏差。
-    *   **操作**: 为每个样本生成一个箱线图。理想情况下，所有样本的中位数应大致在同一水平线上。
-
-### 2.3. 绝对质量评估 (Absolute Quality Assessment)
-**状态**: ✅ 已完成
-
-**操作描述**:
-本步骤旨在评估数据本身的绝对质量，确保鉴定结果是可靠的。此分析模块主要基于 DIANN 输出的最全面的主报告文件 **`report.parquet`**。
-*   **总体鉴定效率总结**:
-    *   **目的**: 从最高层面概览整个实验的成果。
-    *   **操作**: 统计在所有（或指定的）样本中，总共鉴定到了多少种不重复的蛋白质组和肽段序列。
-*   **每个蛋白质组的肽段支持数**:
-    *   **目的**: 评估蛋白质鉴定的证据强度。一个蛋白质被越多的唯一肽段所支持，其鉴定结果就越可靠。
-    *   **操作**: 统计每个蛋白质组对应的唯一肽段数量，并绘制**直方图 (Histogram)**，展示其整体分布。通常，大部分蛋白质应由至少2个肽段支持，中位数是一个关键的衡量指标。
-*   **酶切效率分析 (Missed Cleavages)**:
-    *   **目的**: 评估胰蛋白酶的酶切效率。
-    *   **操作**: 智能检查 `report.parquet` 文件中是否存在漏切位点信息。如果存在，则统计唯一肽段中包含 0, 1, 2... 个漏切位点的比例，并生成**条形图**。一个高质量的实验，通常超过70%的肽段应为0个漏切位点。
-
-## 如何使用
-1.  将您的 DIANN 输出文件（特别是 `report.pg_matrix.tsv`, `report.pr_matrix.tsv` 和 `report.parquet`）放入 `/data/raw_data` 文件夹。
-2.  打开 `/scripts/preprocessing` 文件夹中的主分析 Notebook。
-3.  在 Notebook 的**“参数配置区”**中：
-    *   修改 `column_mapping` 字典以匹配您的原始文件名和期望的短名称。
-    *   配置 `GROUP_DEFINITIONS` 字典以定义您的实验分组。
-    *   设置 `GROUP_TO_ANALYZE` 来选择是进行组内分析还是组间比较。
-4.  按顺序运行 Notebook 中的所有代码块，生成的图表会自动保存在 `/figures` 目录。
+### 【模块六 & 七】报告生成 (可选)
+*   **状态**: 🚧 实验性 (搁置)
+*   **功能**: 提供将整个 Notebook 一键导出为干净HTML报告的功能。
 
 ## 作者
-*   **[Jasper]**
-*   **联系邮箱**: [您的邮箱地址]
-*   **GitHub**: @Jasper-delong
+*   **judeong** 
+*   **联系方式**: judelong@genomics.cn
+*   **GitHub**: Jasper-delong(https://github.com/Jasper-delong)
